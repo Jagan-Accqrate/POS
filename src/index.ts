@@ -9,6 +9,14 @@ const printer = new ThermalPrinter.printer({
   interface: "usb",
 });
 
+const isConnected = await printer.isPrinterConnected();
+
+if (isConnected) {
+  console.log("connected");
+} else {
+  console.log("not connected");
+}
+
 const app = new Elysia();
 
 app.post("/print", async ({ body }: { body: PrintTypes }) => {
@@ -39,10 +47,22 @@ app.post("/print", async ({ body }: { body: PrintTypes }) => {
     printer.println("Thank you! Come again.");
     printer.cut();
 
-    await printer.execute();
-    return { success: true, message: "Receipt printed successfully!" };
+    return printer
+      .execute()
+      .then(() => {
+        console.log("Success");
+        return {
+          success: true,
+          printerConnected: isConnected,
+          message: "Receipt printed successfully!",
+        };
+      })
+      .catch((err) => {
+        console.error("Error", err);
+        return { success: false, printerConnected: isConnected, message: err };
+      });
   } catch (error) {
-    return { success: false, message: "Print failed" };
+    return { success: false, printerConnected: isConnected, message: error };
   }
 });
 
